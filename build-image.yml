@@ -1,0 +1,18 @@
+---
+- hosts: build-image
+  gather_facts: no
+  roles:
+    - build-image
+    - setup-image
+    - finish-image
+  vars:
+    vagrant_home: "~/.vagrant.d/"
+    vagrant_box_file: "centos-7-1505-x64"
+    vagrant_box: "build-image"
+    vagrant_cmd: "vagrant"
+    packer_cmd: "packer"
+    shell_cmd: "/bin/bash"
+    ssh_user: "vagrant"
+    qemuimg_cmd: "qemu-img"
+    final_image: "centos-7-1505-x64.qcow2"
+

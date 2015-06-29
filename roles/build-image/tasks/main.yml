@@ -1,0 +1,75 @@
+---
+- name: Generate Packer template.json 
+  template: src="template.json.j2" dest="packer/template.json"
+  when: no_packer_build is not defined
+  connection: local
+- name: Build Vagrant box using Packer
+  shell: "cd packer ; {{ packer_cmd }} build template.json"
+  when: no_packer_build is not defined
+  connection: local
+- name: Remove existing Vagrant box
+  shell: "{{ vagrant_cmd }} box remove {{ vagrant_box }} || true"
+  when: no_packer_build is not defined
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+- name: Import Vagrant box
+  shell: "{{ vagrant_cmd }} box add packer/{{ vagrant_box_file }}.box --force --name {{ vagrant_box_file }}"
+  when: no_packer_build is not defined
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+- name: Create temporary directory for Vagrant
+  shell: "mktemp -d -t build-image"
+  connection: local
+  register: temp_dir
+- name: Check that we didn't get an empty directory for mktemp
+  fail: msg="mktemp did not return anything"
+  connection: local
+  when: temp_dir.stdout == ''
+- name: Create Vagrant directory for Vagrant
+  shell: "(mkdir -p {{ temp_dir.stdout }} || true) && rm -rf {{ temp_dir.stdout }}/*"
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+- name: Initialize Vagrant machine
+  shell: "cd {{ temp_dir.stdout }} ; {{ vagrant_cmd }} init {{ vagrant_box_file }}"
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+- name: Create Vagrantfile
+  template: src="Vagrantfile.j2" dest="{{ temp_dir.stdout }}/Vagrantfile"
+  connection: local
+- name: Install Vagrant private key
+  copy: src="vagrant_private_key" dest="{{ temp_dir.stdout }}/vagrant_private_key" mode="0600"
+  connection: local
+- name: Start Vagrant machine
+  shell: "cd {{ temp_dir.stdout }} ; {{ vagrant_cmd }} up"
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+- name: Fetch SSH port
+  shell: "cd {{ temp_dir.stdout }} ; {{ vagrant_cmd }} ssh-config | grep Port | awk '{print $2}'"
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+  register: vagrant_port
+- name: Show SSH port information
+  debug: msg="{{ vagrant_port.stdout }}"
+  connection: local
+- name: Wait for Vagrant box to come up 
+  wait_for: port="{{ vagrant_port.stdout }}" host="127.0.0.1" search_regex="OpenSSH" delay="15"
+  connection: local
+- name: Set SSH port
+  set_fact: ansible_ssh_port="{{ vagrant_port.stdout }}"
+- name: Set SSH username
+  set_fact: ansible_ssh_usert="{{ ssh_user }}"
+- name: Set SSH host
+  set_fact: ansible_ssh_host="{{ inventory_hostname }}"
+- name: Set SSH private key
+  set_fact: ansible_ssh_private_key_file="{{ temp_dir.stdout }}/vagrant_private_key"
+#- name: Use sudo
+#  set_fact: ansible_sudo=yes
+- name: Gather facts from Vagrant box
+  action: setup
+  remote_user: "{{ ssh_user }}"

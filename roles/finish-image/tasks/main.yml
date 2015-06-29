@@ -1,0 +1,40 @@
+---
+- name: Make sure system is synced
+  shell: "sync"
+  sudo: yes
+- name: Delete Vagrant user
+  user: name="vagrant" state="absent" remove="no" force="yes"
+  sudo: yes
+- name: Shutdown Vagrant machine
+  shell: "cd {{ temp_dir.stdout }} ; {{ vagrant_cmd }} halt"
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+  connection: local
+- name: Package Vagrant machine
+  shell: "cd {{ temp_dir.stdout }} ; {{ vagrant_cmd }} package --output temp.box"
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+- name: Extract Vagrant box disk image
+  shell: "cd {{ temp_dir.stdout }} ; tar xfvz temp.box box-disk1.vmdk"
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+- name: Convert VMDK disk image to QCOW2
+  shell: "cd {{ temp_dir.stdout }} ; {{ qemuimg_cmd }} convert -f vmdk -O qcow2 box-disk1.vmdk {{ final_image }}"
+  connection: local
+- name: Move QCOW2 image to safe location
+  shell: "mv {{ temp_dir.stdout }}/{{ final_image }} ."
+  connection: local
+- name: Destroy Vagrant machine
+  shell: "cd {{ temp_dir.stdout }} ; vagrant destroy -f"
+  connection: local
+  environment:
+    VAGRANT_HOME: "{{ vagrant_home }}"
+  connection: local
+- name: Delete temporary directory
+  shell: "rm -rf {{ temp_dir.stdout }}"
+  connection: local
+
+
+

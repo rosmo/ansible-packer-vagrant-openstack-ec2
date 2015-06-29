@@ -1,0 +1,31 @@
+---
+# This is just an example of a role you could run, you'd probably want to setup some SSH keys and
+# do some system hardening and stuff. You'l probably want at least cloud-init.
+#
+- name: Add something to issue
+  shell: "echo Built with Ansible >> /etc/issue"
+  sudo: yes
+# This makes Dracut generate fat initramfs files, you could probably get away with a 
+# smaller initrd by forcing eg. virtio modules.
+- name: Install dracut-config-generic
+  yum: pkg="dracut-config-generic" state="latest"
+  sudo: yes
+#- name: Update initramfs etc.
+#  shell: "/sbin/new-kernel-pkg --package kernel --mkinitrd --dracut --update `uname -r`"
+#  sudo: yes
+- name: Update all packages
+  yum: pkg=* state=latest
+  sudo: yes
+- name: Reboot machine after updates
+  shell: "sleep 2 ; reboot"
+  async: 1
+  poll: 0
+  ignore_errors: True
+  sudo: yes
+- name: Wait for reboot to complete
+  pause: seconds=10
+  connection: local
+- name: Wait for machine to come back up
+  wait_for: port="{{ ansible_ssh_port }}" host="127.0.0.1" search_regex="OpenSSH" delay="15"
+  connection: local
+
