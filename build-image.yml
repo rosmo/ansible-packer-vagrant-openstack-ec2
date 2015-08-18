@@ -6,8 +6,13 @@
     - { role: 'setup-image', tags: [ 'build' ] }
     - { role: 'finish-image', tags: [ 'build' ] }
     - { role: 'make-ami-image', when: "build_ami_image", tags: [ 'ami' ] }
+    - { role: 'make-ovf-image', when: "build_ovf_image", tags: [ 'ovf' ] }
   vars:
     iso_image: "CentOS-7-x86_64-Minimal-1507-01.iso"
+    disk_size: 8192
+    memory_size: 1024
+    ovf_name: "your-ovf"
+    ovf_vcpus: 1
     vagrant_home: "~/.vagrant.d/"
     vagrant_box_file: "centos-7-1507-x64"
     vagrant_box: "build-image"
@@ -17,7 +22,8 @@
     ssh_user: "vagrant"
     qemuimg_cmd: "qemu-img"
     final_image: "centos-7-1507-x64.qcow2"
-    build_ami_image: yes
+    build_ami_image: no
+    build_ovf_image: no
     amazon_region: "eu-central-1"
     amazon_kernel_image: "aki-247d4d39"
     amazon_account_id: "123456789012"

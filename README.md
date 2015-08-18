@@ -3,7 +3,7 @@
 Ansible scripts to build operating system images using Packer and Vagrant, 
 exporting to an Openstack image.
 
-*Now this playbook also generates AMI images.*
+*Now this playbook also generates AMI and OVF images.*
 
 ## Required software:
 
@@ -13,6 +13,12 @@ exporting to an Openstack image.
 - qemu-img (available for OS X in Brew's qemu package)
 
 These scripts assume that you are using Virtualbox to back Vagrant boxes.
+
+## Required setup for OVF images
+
+Change "build_ovf_image" to true (from command line or playbook vars).
+
+The import has only been tested on Virtualbox.
 
 ## Required setup for AMI images
 
@@ -66,7 +72,7 @@ to manifest template)
   Example: 
   wget -Opacker/CentOS-7-x86_64-Minimal-1507-01.iso http://buildlogs.centos.org/rolling/7/isos/x86_64/CentOS-7-x86_64-Minimal-1507-01.iso
 - Miscellaneous utilities (should come bundled with OS X): xmllint, tidy,
-  openssl, perl, split
+  openssl, perl, split, uuidgen
 
 Tested on OS X 10.10, but should be easily adapted to Linux.
 

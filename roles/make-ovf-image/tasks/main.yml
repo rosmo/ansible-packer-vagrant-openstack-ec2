@@ -1,0 +1,22 @@
+---
+- name: Convert final disk image to VMDK
+  shell: "{{ qemuimg_cmd }} convert -f qcow2 -O vmdk -o subformat=streamOptimized {{ final_image }} {{ ovf_name }}.vmdk"
+  connection: local
+- name: Grab VMDK image file size
+  stat: path="{{ ovf_name }}.vmdk" get_checksum="no" get_md5="no"
+  register: vmdk_size
+  connection: local
+- name: Generate disk image UUID
+  shell: "uuidgen | tr '[:upper:]' '[:lower:]'"
+  register: disk_image_uuid
+  connection: local
+- name: Generate machine UUID
+  shell: "uuidgen | tr '[:upper:]' '[:lower:]'"
+  register: machine_uuid
+  connection: local
+- name: Generate OVF XML
+  template: src="template.ovf.j2" dest="./{{ ovf_name }}.ovf"
+  connection: local
+- name: Package OVA
+  shell: "tar -c -h -S {{ ovf_name }}.ovf {{ ovf_name }}.vmdk > {{ ovf_name }}.ova"
+  connection: local
