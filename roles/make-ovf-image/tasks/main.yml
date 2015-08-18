@@ -20,3 +20,6 @@
 - name: Package OVA
   shell: "tar -c -h -S {{ ovf_name }}.ovf {{ ovf_name }}.vmdk > {{ ovf_name }}.ova"
   connection: local
+- name: Clean temporary files
+  shell: "rm -f {{ ovf_name }}.ovf {{ ovf_name }}.vmdk"
+  connection: local
