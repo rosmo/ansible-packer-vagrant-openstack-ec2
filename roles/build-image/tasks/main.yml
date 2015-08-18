@@ -1,4 +1,9 @@
 ---
+- name: Calculate ISO checksum
+  shell: "openssl sha1 -sha1 -hex packer/{{ iso_image }} | awk '{print $2}'"
+  register: iso_image_checksum
+  when: no_packer_build is not defined
+  connection: local
 - name: Generate Packer template.json 
   template: src="template.json.j2" dest="packer/template.json"
   when: no_packer_build is not defined

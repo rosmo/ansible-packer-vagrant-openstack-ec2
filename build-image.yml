@@ -2,17 +2,28 @@
 - hosts: build-image
   gather_facts: no
   roles:
-    - build-image
-    - setup-image
-    - finish-image
+    - { role: 'build-image', tags: [ 'build' ] }
+    - { role: 'setup-image', tags: [ 'build' ] }
+    - { role: 'finish-image', tags: [ 'build' ] }
+    - { role: 'make-ami-image', when: "build_ami_image", tags: [ 'ami' ] }
   vars:
+    iso_image: "CentOS-7-x86_64-Minimal-1507-01.iso"
     vagrant_home: "~/.vagrant.d/"
-    vagrant_box_file: "centos-7-1505-x64"
+    vagrant_box_file: "centos-7-1507-x64"
     vagrant_box: "build-image"
     vagrant_cmd: "vagrant"
     packer_cmd: "packer"
     shell_cmd: "/bin/bash"
     ssh_user: "vagrant"
     qemuimg_cmd: "qemu-img"
-    final_image: "centos-7-1505-x64.qcow2"
+    final_image: "centos-7-1507-x64.qcow2"
+    build_ami_image: yes
+    amazon_region: "eu-central-1"
+    amazon_kernel_image: "aki-247d4d39"
+    amazon_account_id: "123456789012"
+    amazon_certificate: "cert-XXX.pem"
+    amazon_certificate: "pk-XXX.pem"
+    amazon_s3_bucket: "your-s3-bucket-name/a-bucket-folder"
+    amazon_ami_name: "your-ami-name"
+
 

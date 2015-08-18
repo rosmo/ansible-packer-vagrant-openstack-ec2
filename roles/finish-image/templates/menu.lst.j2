@@ -1,0 +1,10 @@
+default 0
+fallback 1
+timeout 0
+hiddenmenu
+
+title {{ image_kernel_version.stdout }}
+root (hd0,0)
+kernel /vmlinuz-{{ image_kernel_version.stdout }} root=LABEL=Root console=hvc0
+initrd /initramfs-{{ image_kernel_version.stdout }}.img
+

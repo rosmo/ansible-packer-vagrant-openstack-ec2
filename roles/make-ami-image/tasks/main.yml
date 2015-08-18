@@ -1,0 +1,93 @@
+---
+- name: Convert final disk image to RAW
+  shell: "{{ qemuimg_cmd }} convert -f qcow2 -O raw {{ final_image }} {{ final_image }}.raw"
+  connection: local
+- name: Grab RAW image file size
+  stat: path="{{ final_image }}.raw"
+  register: raw_image_size
+  connection: local
+- name: Generate a symmetric key for AMI image encryption
+  shell: "openssl rand -hex 16"
+  register: ami_private_key
+  connection: local
+- name: Generate an IV for AMI image encryption
+  shell: "openssl rand -hex 16"
+  register: ami_private_iv
+  connection: local
+- name: Convert Amazon user certificate to a public key
+  shell: "openssl x509 -pubkey -in {{ amazon_certificate }} -noout > cert.pem"
+  connection: local
+- name: Encrypt generated key with user public key
+  shell: "printf '{{ ami_private_key.stdout }}' | openssl rsautl -encrypt -pubin -inkey cert.pem | xxd -p | tr -d '\n'"
+  register: ami_encrypted_user_key
+  connection: local
+- name: Encrypt generated IV with user public key
+  shell: "printf '{{ ami_private_iv.stdout }}' | openssl rsautl -encrypt -pubin -inkey cert.pem | xxd -p | tr -d '\n'"
+  register: ami_encrypted_user_iv
+  connection: local
+- name: Convert Amazon EC2 certificate to a public key
+  shell: "openssl x509 -pubkey -in $EC2_AMITOOL_HOME/etc/ec2/amitools/cert-ec2.pem -noout > cert-ec2.pem"
+  connection: local
+- name: Encrypt generated key with Amazon public key
+  shell: "printf '{{ ami_private_key.stdout }}' | openssl rsautl -encrypt -pubin -inkey cert-ec2.pem | xxd -p | tr -d '\n'"
+  register: ami_encrypted_ec2_key
+  connection: local
+- name: Encrypt generated IV with Amazon public key
+  shell: "printf '{{ ami_private_iv.stdout }}' | openssl rsautl -encrypt -pubin -inkey cert-ec2.pem | xxd -p | tr -d '\n'"
+  register: ami_encrypted_ec2_iv
+  connection: local
+- name: Package image
+  shell: "tar -c -h -S {{ final_image }}.raw > {{ final_image }}.tar"
+  connection: local
+- name: Calculate AMI image tar file SHA1
+  shell: "openssl sha1 -sha1 -hex {{ final_image }}.tar | awk '{print $2}'"
+  register: ami_image_sha1
+  connection: local
+- name: Package image
+  shell: "cat {{ final_image }}.tar | gzip -9 | openssl enc -e -aes-128-cbc -K {{ ami_private_key.stdout }} -iv {{ ami_private_iv.stdout }} > {{ final_image }}.part"
+  connection: local
+- name: Grab image part file size
+  stat: path="{{ final_image }}.part"
+  register: final_image_size
+  connection: local
+- name: Split files to 10MB pieces
+  shell: "split -b10m -a 4 {{ final_image }}.part {{ final_image }}.part."
+  connection: local
+- name: Find all split parts
+  find: paths="." patterns="{{ final_image }}.part.*" get_checksum="yes"
+  register: image_parts
+  connection: local
+- name: Calculate encrypted AMI image SHA1 
+  shell: "openssl sha1 -sha1 -hex {{ final_image }}.part | awk '{print $2}'"
+  register: ami_encrypted_image_sha1
+  connection: local
+- name: Generate manifest.xml
+  template: src="manifest.xml.j2" dest="./manifest.xml"
+  connection: local
+- name: Read manifest machine configuration for signature
+  shell: "xmllint --xpath '//machine_configuration' manifest.xml | tidy -asxml -xml -quiet -asxml -wrap 10000 | tr -d '\n'"
+  register: signature_mc
+  connection: local
+- name: Read manifest image configuration for signature
+  shell: "xmllint --xpath '//image' manifest.xml | tidy -asxml -xml -quiet -asxml -wrap 10000 | tr -d '\n'"
+  register: signature_image
+  connection: local
+- name: Sign the manifest
+  shell: "printf '{{ signature_mc.stdout }}{{ signature_image.stdout }}' | tr '\"' \"'\" | openssl dgst -sha1 -hex -sign {{ amazon_private_key }} | awk '{print $2}'"
+  register: manifest_signature
+  connection: local
+- name: Insert signature in manifest
+  shell: "perl -pi -e 's|SIGNATURE-HERE|{{ manifest_signature.stdout }}|' manifest.xml ; mv manifest.xml {{ final_image }}.manifest.xml"
+  connection: local
+- name: Run manifest through tidy
+  shell: "tidy -asxml -xml -quiet -asxml -wrap 10000 {{ final_image }}.manifest.xml | tr '\"' \"'\" | tr -d '\n' > {{ amazon_ami_name }}.manifest.xml"
+  connection: local
+- name: Upload AMI to Amazon
+  shell: "ec2-upload-bundle -b {{ amazon_s3_bucket }} -m {{ amazon_ami_name }}.manifest.xml -a $AWS_ACCESS_KEY -s $AWS_SECRET_KEY --sigv 4 --region {{ amazon_region }}"
+  connection: local
+- name: Register AMI to Amazon
+  shell: "ec2-register {{ amazon_s3_bucket }}/{{ amazon_ami_name }}.manifest.xml -n {{ amazon_ami_name }} -O $AWS_ACCESS_KEY -W $AWS_SECRET_KEY --region {{ amazon_region }} --virtualization-type hvm"
+  connection: local
+- name: Delete temporary files
+  shell: "rm -f cert.pem cert-ec2.pem {{ final_image }}.manifest.xml {{ final_image }}.part.* {{ final_image }}.tar {{ final_image }}.raw"
+  connection: local

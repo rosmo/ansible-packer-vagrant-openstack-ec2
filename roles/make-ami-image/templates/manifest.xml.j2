@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<manifest>
+  <version>2007-10-10</version>
+  <bundler>
+    <name>ansible-packer-vagrant-openstack</name>
+    <version>1.0</version>
+    <release>1</release>
+  </bundler>
+  <machine_configuration>
+    <architecture>x86_64</architecture>
+  </machine_configuration>
+  <image>
+    <name>{{ final_image }}.raw</name>
+    <user>{{ amazon_account_id }}</user>
+    <type>machine</type>
+    <digest algorithm="SHA1">{{ ami_image_sha1.stdout }}</digest>
+    <size>{{ raw_image_size.stat.size }}</size>
+    <bundled_size>{{ final_image_size.stat.size }}</bundled_size>
+    <ec2_encrypted_key algorithm="AES-128-CBC">{{ ami_encrypted_ec2_key.stdout }}</ec2_encrypted_key>
+    <user_encrypted_key algorithm="AES-128-CBC">{{ ami_encrypted_user_key.stdout }}</user_encrypted_key>
+    <ec2_encrypted_iv>{{ ami_encrypted_ec2_iv.stdout }}</ec2_encrypted_iv>
+    <user_encrypted_iv>{{ ami_encrypted_user_iv.stdout }}</user_encrypted_iv>
+    <parts count="{{ image_parts.files|length }}">
+      {% for part in image_parts.files %}
+      <part index="{{ loop.index - 1 }}">
+        <filename>{{ part.path|basename }}</filename>
+        <digest algorithm="SHA1">{{ part.checksum }}</digest>
+      </part>
+      {% endfor %}
+    </parts>
+  </image>
+  <signature>SIGNATURE-HERE</signature>
+</manifest>
