@@ -1,4 +1,13 @@
 ---
+- name: Check that ISO has been downloaded
+  stat: path="packer/{{ iso_image }}" get_checksum="no" get_md5="no" follow="yes"
+  when: no_packer_build is not defined
+  register: iso_image_stat
+  connection: local
+- name: Complain if ISO image is missing
+  fail: msg="Could not find packer/{{ iso_image }}"
+  when: not iso_image_stat.stat.exists 
+  connection: local
 - name: Calculate ISO checksum
   shell: "openssl sha1 -sha1 -hex packer/{{ iso_image }} | awk '{print $2}'"
   register: iso_image_checksum
