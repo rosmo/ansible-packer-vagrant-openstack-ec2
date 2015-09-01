@@ -1,0 +1,10 @@
+---
+- name: Remove generated SSH host keys
+  shell: "rm -f /etc/ssh/ssh_host*_key*"
+  sudo: yes
+- name: Find out currently running kernel
+  shell: uname -r
+  register: image_kernel_version
+- name: Generate menu.lst for GRUB 0.9
+  template: src="menu.lst.j2" dest="/boot/grub/menu.lst"
+  sudo: yes

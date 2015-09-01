@@ -1,0 +1,42 @@
+# Sample template
+#
+heat_template_version: 2013-05-23
+
+description: >
+  Sample Heat orchestration template. Derived from hello world example.
+
+parameters:
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    constraints:
+      - custom_constraint: nova.keypair
+  flavor:
+    type: string
+    description: Flavor for the server to be created
+    default: nbl-n1-tiny
+    constraints:
+      - custom_constraint: nova.flavor
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    constraints:
+      - custom_constraint: glance.image
+  availability_zone:
+    type: string
+    description: The Availability Zone to launch the instance.
+    default: nova
+
+resources:
+  server1:
+    type: OS::Nova::Server
+    properties:
+      availability_zone: { get_param: availability_zone }
+      key_name: { get_param: key_name }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+
+outputs:
+  server_networks:
+    description: The networks of the deployed server
+    value: { get_attr: [server1, networks] }

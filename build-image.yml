@@ -4,9 +4,12 @@
   roles:
     - { role: 'build-image', tags: [ 'build' ] }
     - { role: 'setup-image', tags: [ 'build' ] }
+    - { role: 'cleanup-image', tags: [ 'build' ] }
     - { role: 'finish-image', tags: [ 'build' ] }
     - { role: 'make-ami-image', when: "build_ami_image", tags: [ 'ami' ] }
     - { role: 'make-ovf-image', when: "build_ovf_image", tags: [ 'ovf' ] }
+    - { role: 'make-glance-image', when: "build_glance_image", tags: [ 'openstack' ] }
+    - { role: 'make-heat-template', when: "build_heat_stack", tags: [ 'openstack' ] }
   vars:
     iso_image: "CentOS-7-x86_64-Minimal-1507-01.iso"
     disk_size: 8192
@@ -24,6 +27,8 @@
     final_image: "centos-7-1507-x64.qcow2"
     build_ami_image: no
     build_ovf_image: no
+    build_glance_image: yes
+    build_heat_stack: yes
     amazon_region: "eu-central-1"
     amazon_kernel_image: "aki-247d4d39"
     amazon_account_id: "123456789012"
@@ -31,5 +36,10 @@
     amazon_certificate: "pk-XXX.pem"
     amazon_s3_bucket: "your-s3-bucket-name/a-bucket-folder"
     amazon_ami_name: "your-ami-name"
+    openstack_image: "mytestimage"
+    openstack_heat_stack: "myteststack"
+    openstack_key_name: "rosmo"
+    openstack_flavor: "nbl-n1-small"
+    openstack_availability_zone: "helsinki-1"
 
 

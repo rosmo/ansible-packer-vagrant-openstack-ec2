@@ -1,0 +1,12 @@
+---
+- name: Upload image to Glance
+  os_image:
+    auth: {}
+    name: "{{ openstack_image }}"
+    disk_format: "qcow2"
+    min_disk: "{{ disk_size / 1024 }}"
+    min_ram: "{{ memory_size }}"
+    is_public: no
+    filename: "{{ final_image }}"
+    state: "present"
+  connection: local

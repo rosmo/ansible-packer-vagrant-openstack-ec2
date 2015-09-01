@@ -1,0 +1,12 @@
+---
+- name: Create Heat template
+  os_orchestration_stack:
+     name: "{{ openstack_heat_stack }}"
+     template: "{{ lookup('template', '../templates/sample.yml.j2') }}"
+     state: present
+     parameters:
+       key_name: "{{ openstack_key_name }}"
+       flavor: "{{ openstack_flavor }}"
+       image: "{{ openstack_image }}"
+       availability_zone: "{{ openstack_availability_zone }}"
+  connection: local

@@ -1,14 +1,16 @@
 # ansible-packer-vagrant-openstack
 
 Ansible scripts to build operating system images using Packer and Vagrant, 
-exporting to an Openstack image.
+exporting to an Openstack image, AMI or OVF image(s).
 
-*Now this playbook also generates AMI and OVF images.*
+Now also offers the possibility to upload the image directly to Openstack
+Image service (Glance) and/or automatically instanciate it with a
+Heat orchestration template.
 
 ## Required software:
 
 - Ansible (http://www.ansible.com/home)
-- Packer (https://www.packer.io/), at least version 0.8.6
+- Packer (https://www.packer.io/), at least version 0.8.6 for ssh_pty support
 - Vagrant (https://www.vagrantup.com/)
 - qemu-img (available for OS X in Brew's qemu package)
 
@@ -92,3 +94,18 @@ ansible-playbook -i hosts build-image.yml -e 'no_packer_build=yes'
 If everything was successful, you'll find the QCOW2 image in your Ansible directory.
 If you built an AMI image, it should be available under your AMI images.
 
+## Uploading to Openstack
+
+Set build_glance_image to yes and setup openstack_image as you'd like. You'll
+need the OS_* variables set up to communicate with Openstack API.
+
+You can use os_image.py from your Ansible distribution or the one bundled
+with this playbook.
+
+## Heat orchestration
+
+There's a simple example template in roles/make-heat-template/templates/sample.yml.j2
+which starts a single server with the image you created. 
+
+There's a new Ansible module called os_orchestration_stack.py which allow uploading
+Heat templates.
