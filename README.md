@@ -8,7 +8,7 @@ exporting to an Openstack image.
 ## Required software:
 
 - Ansible (http://www.ansible.com/home)
-- Packer (https://www.packer.io/)
+- Packer (https://www.packer.io/), at least version 0.8.6
 - Vagrant (https://www.vagrantup.com/)
 - qemu-img (available for OS X in Brew's qemu package)
 
