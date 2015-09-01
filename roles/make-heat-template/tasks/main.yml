@@ -2,11 +2,15 @@
 - name: Create Heat template
   os_orchestration_stack:
      name: "{{ openstack_heat_stack }}"
-     template: "{{ lookup('template', '../templates/sample.yml.j2') }}"
+     template: "{{ lookup('template', ('../templates/' ~ openstack_heat_template)) }}"
      state: present
      parameters:
        key_name: "{{ openstack_key_name }}"
        flavor: "{{ openstack_flavor }}"
        image: "{{ openstack_image }}"
        availability_zone: "{{ openstack_availability_zone }}"
+       private_net: "{{ openstack_private_net }}"
+       private_subnet: "{{ openstack_private_subnet }}"
+       public_net: "{{ openstack_public_net }}"
+       security_group: "{{ openstack_security_group }}"
   connection: local

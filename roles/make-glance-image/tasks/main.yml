@@ -1,4 +1,10 @@
 ---
+- name: Remove image from Glance
+  os_image:
+    auth: {}
+    name: "{{ openstack_image }}"
+    state: "absent"
+  connection: local
 - name: Upload image to Glance
   os_image:
     auth: {}

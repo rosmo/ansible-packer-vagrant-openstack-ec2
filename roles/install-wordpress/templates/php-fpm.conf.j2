@@ -1,0 +1,74 @@
+[global]
+pid = /run/php-fpm.pid
+error_log = log/php-fpm/php-fpm.log
+
+;syslog.facility = daemon
+;syslog.ident = php-fpm
+;log_level = notice
+
+;emergency_restart_threshold = 0
+;emergency_restart_interval = 0
+;process_control_timeout = 0
+
+process.max = 1024
+
+;process.priority = -19
+;daemonize = yes
+;rlimit_files = 1024
+ 
+;rlimit_core = 0
+
+events.mechanism = epoll
+
+;systemd_interval = 10
+
+[wordpress]
+
+;prefix = /path/to/pools/$pool
+
+user = apache
+group = apache
+listen = 127.0.0.1:9000
+
+;listen.backlog = 65535
+;listen.owner = apache
+;listen.group = apache
+;listen.mode = 0660
+;listen.allowed_clients = 127.0.0.1
+
+; process.priority = -19
+pm = dynamic
+
+pm.max_children = {{ ansible_processor_vcpus * 3 }}
+{% if ansible_processor_vcpus == 1 %}
+pm.start_servers = {{ ansible_processor_vcpus * 2 }}
+pm.min_spare_servers = {{ ansible_processor_vcpus * 2 }}
+pm.max_spare_servers = {{ ansible_processor_vcpus * 3 }}
+{% else %}
+pm.start_servers = {{ ansible_processor_vcpus }}
+pm.min_spare_servers = {{ ansible_processor_vcpus // 2 }}
+pm.max_spare_servers = {{ ansible_processor_vcpus }}
+{% endif %}
+;pm.process_idle_timeout = 10s;
+;pm.max_requests = 500
+
+;ping.path = /ping
+;ping.response = pong
+
+;access.log = log/$pool.access.log
+;access.format = "%R - %u %t \"%m %r%Q%q\" %s %f %{mili}d %{kilo}M %C%%"
+;slowlog = log/$pool.log.slow
+
+;request_slowlog_timeout = 0
+;request_terminate_timeout = 0
+ 
+;rlimit_files = 1024
+rlimit_core = 0
+ 
+;chroot = 
+;chdir = /var/www
+ 
+catch_workers_output = yes
+;clear_env = no
+;security.limit_extensions = .php .php3 .php4 .php5
+

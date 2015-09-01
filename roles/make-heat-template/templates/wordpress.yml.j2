@@ -1,0 +1,76 @@
+# Sample template
+#
+heat_template_version: 2013-05-23
+
+description: >
+  Sample Heat orchestration template. Derived from hello world example.
+
+parameters:
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    constraints:
+      - custom_constraint: nova.keypair
+  flavor:
+    type: string
+    description: Flavor for the server to be created
+    default: nbl-n1-tiny
+    constraints:
+      - custom_constraint: nova.flavor
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    constraints:
+      - custom_constraint: glance.image
+  availability_zone:
+    type: string
+    description: The Availability Zone to launch the instance.
+    default: nova
+  private_net:
+    type: string
+    description: Private net ID
+  private_subnet:
+    type: string
+    description: Private subnet ID
+  public_net:
+    type: string
+    description: Public network ID
+  security_group:
+    type: string
+    description: Security group name
+
+resources:
+  server1:
+    type: OS::Nova::Server
+    properties:
+      availability_zone: { get_param: availability_zone }
+      key_name: { get_param: key_name }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - port: { get_resource: public_port } 
+
+  public_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net }
+      fixed_ips:
+      - subnet_id: { get_param: private_subnet }
+      security_groups:
+      - { get_param: security_group }
+
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net }
+
+  floating_ip_assoc:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: floating_ip }
+      port_id: { get_resource: public_port }
+
+outputs:
+  server_networks:
+    description: The networks of the deployed server
+    value: { get_attr: [server1, networks] }

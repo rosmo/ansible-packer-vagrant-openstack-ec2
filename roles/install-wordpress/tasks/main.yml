@@ -1,0 +1,103 @@
+---
+- name: Gather facts from host
+  action: setup
+  sudo: yes
+- name: Install rosmo.fi repository
+  template: src="rosmo.repo.j2" dest="/etc/yum.repos.d/rosmo.repo"
+  sudo: yes
+- name: Check if swapfile exists
+  stat: path="/swapfile"
+  register: swap_file
+- name: Add a swapfile
+  shell: "dd if=/dev/zero of=/swapfile bs=1M count=1024"
+  when: not swap_file.stat.exists
+  sudo: yes
+- name: Prepare swapfile
+  shell: "mkswap /swapfile ; chmod 0600 /swapfile"
+  when: not swap_file.stat.exists
+  sudo: yes
+- name: Add swapfile to fstab
+  lineinfile: dest=/etc/fstab line="/swapfile /swapfile swap defaults 0 0"
+  sudo: yes
+- name: Enable swap
+  shell: "swapon -a"
+  sudo: yes
+- name: Install MariaDB 10
+  yum: name="mariadb-server" state="latest"
+  sudo: yes
+- name: Install Nginx 1.9
+  yum: name="nginx" state="latest"
+  sudo: yes
+- name: Install Nginx base configuration
+  template: src="nginx.conf.j2" dest="/etc/nginx/nginx.conf"
+  sudo: yes
+- name: Clear Nginx conf.d files
+  shell: "echo -n '' > /etc/nginx/conf.d/default.conf ; echo -n '' > /etc/nginx/conf.d/example_ssl.conf"
+  sudo: yes
+- name: Install PHP7 FPM
+  yum: name="php-fpm" state="latest"
+  sudo: yes
+- name: Install PHP FPM configuration
+  template: src="php-fpm.conf.j2" dest="/etc/php-fpm.conf"
+  sudo: yes
+- name: Install MariaDB server
+  yum: name="mariadb-server" state="latest"
+  sudo: yes
+- name: Start MariaDB server
+  service: name="mariadb" state="started" enabled="yes"
+  sudo: yes
+- name: Enable httpd_can_network_connect_db
+  seboolean: name="httpd_can_network_connect_db" state="yes" persistent="yes"
+  sudo: yes
+- name: Generate a random string to use as basis for Wordpress configuration
+  shell: "openssl rand -hex 32"
+  register: wordpress_random
+- name: Install MySQL-python for database import
+  yum: name="MySQL-python" state="latest"
+  sudo: yes
+- name: Create Wordpress database
+  mysql_db: name="{{ wordpress.database }}" state="present"
+  register: database_exists
+- name: Transfer Wordpress base database dump
+  copy: src="wordpress.sql" dest="/tmp/wordpress.sql" mode="0600"
+  when: database_exists.changed
+- name: Import Wordpress database
+  mysql_db: name="{{ wordpress.database }}" state="import" target="/tmp/wordpress.sql"
+  when: database_exists.changed
+# The admin console username is "admin" and password is "ChangeMe!"
+- name: Create Wordpress user
+  mysql_user: name="{{ wordpress.user }}" password="{{ (wordpress_random.stdout ~ wordpress.password) | md5 }}" host="localhost" priv="{{ wordpress.database }}.*:SELECT,INSERT,UPDATE,DELETE" 
+  when: database_exists.changed
+- name: Delete Wordpress database dump
+  file: path="/tmp/wordpress.sql" state="absent"
+  when: database_exists.changed
+- name: Install Wordpress
+  yum: name="wordpress" state="latest"
+  sudo: yes
+- name: Install Wordpress configuration
+  template: src="wp-config.php.j2" dest="/etc/wordpress/wp-config.php"
+  sudo: yes
+- name: Start PHP-FPM server
+  service: name="php-fpm" state="started" enabled="yes"
+  sudo: yes
+- name: Install Wordpress Nginx configuration
+  template: src="wordpress.conf.j2" dest="/etc/nginx/conf.d/wordpress.conf"
+  sudo: yes
+- name: Start Nginx server
+  service: name="nginx" state="started" enabled="yes"
+  sudo: yes
+- name: Change SSH port
+  lineinfile: dest="/etc/ssh/sshd_config" line="Port 22022" regexp='^.Port'
+  sudo: yes
+- name: Add new SSH port to SELinux
+  shell: "semanage port -a -t ssh_port_t -p tcp 22022"
+  sudo: yes
+- name: Open port 22022 on firewalld
+  shell: "firewall-cmd --zone=public --add-port=22022/tcp --permanent"
+  sudo: yes
+- name: Open port 80 on firewalld
+  shell: "firewall-cmd --zone=public --add-port=80/tcp --permanent"
+  sudo: yes
+- name: Reload firewalld
+  shell: "firewall-cmd --reload"
+  sudo: yes

@@ -41,5 +41,6 @@
     openstack_key_name: "rosmo"
     openstack_flavor: "nbl-n1-small"
     openstack_availability_zone: "helsinki-1"
+    openstack_heat_template: "wordpress.yml.j2"
 
 
