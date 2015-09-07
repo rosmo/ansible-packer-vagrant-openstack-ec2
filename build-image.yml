@@ -33,7 +33,7 @@
     amazon_kernel_image: "aki-247d4d39"
     amazon_account_id: "123456789012"
     amazon_certificate: "cert-XXX.pem"
-    amazon_certificate: "pk-XXX.pem"
+    amazon_private_key: "pk-XXX.pem"
     amazon_s3_bucket: "your-s3-bucket-name/a-bucket-folder"
     amazon_ami_name: "your-ami-name"
     openstack_image: "mytestimage"
