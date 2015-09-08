@@ -28,4 +28,9 @@
 - name: Wait for machine to come back up
   wait_for: port="{{ ansible_ssh_port }}" host="127.0.0.1" search_regex="OpenSSH" delay="15"
   connection: local
-
+- name: Install cloud-init
+  yum: pkg="cloud-init" state=latest
+  sudo: yes
+- name: Enable cloud-init on startup
+  service: name="cloud-init" enabled="yes"
+  sudo: yes

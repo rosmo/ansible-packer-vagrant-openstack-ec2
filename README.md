@@ -7,12 +7,16 @@ Now also offers the possibility to upload the image directly to Openstack
 Image service (Glance) and/or automatically instanciate it with a
 Heat orchestration template.
 
+Please see the end of the document for the changelog, it contains some
+important information regarding changes.
+
 ## Required software:
 
 - Ansible (http://www.ansible.com/home)
 - Packer (https://www.packer.io/), at least version 0.8.6 for ssh_pty support
 - Vagrant (https://www.vagrantup.com/)
 - qemu-img (available for OS X in Brew's qemu package)
+- Boto for ec2_ami module (pip install boto)
 
 These scripts assume that you are using Virtualbox to back Vagrant boxes.
 
@@ -107,5 +111,28 @@ with this playbook.
 There's a simple example template in roles/make-heat-template/templates/sample.yml.j2
 which starts a single server with the image you created. 
 
-There's a new Ansible module called os_orchestration_stack.py which allow uploading
-Heat templates.
+There's a new Ansible module called os_orchestration_stack.py which allows uploading
+Heat templates programmatically.
+
+## Change log:
+
+- Removed requirement for Amazon's CLI tools, use s3 to upload image
+  parts and improved ec2_ami module to register the image. This
+  requires a small fix to Boto's canned ACL strings list at:
+  boto/s3/acl.py 
+
+```
+--- acl.py.old	2015-09-08 12:53:26.000000000 +0300
++++ acl.py	2015-09-08 12:53:18.000000000 +0300
+@@ -25,7 +25,7 @@
+ CannedACLStrings = ['private', 'public-read',
+                     'public-read-write', 'authenticated-read',
+                     'bucket-owner-read', 'bucket-owner-full-control',
+-                    'log-delivery-write']
++                    'log-delivery-write', 'aws-exec-read']
+```
+
+  Boto issue: https://github.com/boto/boto/issues/3330
+
+  This also requires a small patches to s3 and ec2_ami Ansible modules,
+  which are both included. 

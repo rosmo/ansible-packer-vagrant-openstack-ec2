@@ -82,11 +82,15 @@
 - name: Run manifest through tidy
   shell: "tidy -asxml -xml -quiet -asxml -wrap 10000 {{ final_image }}.manifest.xml | tr '\"' \"'\" | tr -d '\n' > {{ amazon_ami_name }}.manifest.xml"
   connection: local
-- name: Upload AMI to Amazon
-  shell: "ec2-upload-bundle -b {{ amazon_s3_bucket }} -m {{ amazon_ami_name }}.manifest.xml -a $AWS_ACCESS_KEY -s $AWS_SECRET_KEY --sigv 4 --region {{ amazon_region }}"
+- name: Upload AMI parts to Amazon S3
+  s3: bucket="{{ amazon_s3_bucket }}" object="{{ amazon_s3_bucket_folder}}/{{ item.path }}" src="{{ item.path }}" mode="put" region="{{ amazon_region }}" permission="public-read,aws-exec-read"
+  with_items: image_parts.files
   connection: local
-- name: Register AMI to Amazon
-  shell: "ec2-register {{ amazon_s3_bucket }}/{{ amazon_ami_name }}.manifest.xml -n {{ amazon_ami_name }} -O $AWS_ACCESS_KEY -W $AWS_SECRET_KEY --region {{ amazon_region }} --virtualization-type hvm"
+- name: Upload AMI manifest to Amazon S3
+  s3: bucket="{{ amazon_s3_bucket }}" object="{{ amazon_s3_bucket_folder }}/{{ amazon_ami_name }}.manifest.xml" src="{{ amazon_ami_name }}.manifest.xml" mode="put" region="{{ amazon_region }}" permission="public-read,aws-exec-read"
+  connection: local
+- name: Register AMI image
+  ec2_ami: name="{{ amazon_ami_name }}" image_location="{{ amazon_s3_bucket }}/{{ amazon_s3_bucket_folder }}/{{ amazon_ami_name }}.manifest.xml" region="{{ amazon_region }}" state="register"
   connection: local
 - name: Delete temporary files
   shell: "rm -f cert.pem cert-ec2.pem {{ final_image }}.manifest.xml {{ final_image }}.part.* {{ final_image }}.tar {{ final_image }}.raw"
