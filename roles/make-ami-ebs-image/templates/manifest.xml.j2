@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<manifest>
+    <version>2010-11-15</version>
+    <file-format>VMDK</file-format>
+    <importer>
+        <name>ansible-packer-vagrant-openstack</name>
+        <version>1.0.0</version>
+        <release>2015-09-08</release>
+    </importer>
+    <self-destruct-url><![CDATA[{{ ("/" ~ amazon_s3_bucket_folder ~ "/" ~ amazon_ami_name ~ "-ebs.manifest.xml")|get_signed_s3_url("s3.eu-central-1.amazonaws.com", "crasman-tf", expiry=86000, method="DELETE") }}]]></self-destruct-url>
+    <import>
+        <size>{{ ebs_image_size.stat.size }}</size>
+        <volume-size>{{ ebs_disk_size // 1024 }}</volume-size>
+        <parts count="{{ ebs_image_parts.files|length }}">
+        {% for part in ebs_image_parts.files %}
+            <part index="{{ loop.index - 1 }}">
+              <byte-range start="{{ (loop.index - 1) * 10485760 }}" end="{% if ((loop.index * 10485760) - 1) > ebs_image_size.stat.size %}{{ ebs_image_size.stat.size }}{% else %}{{ (loop.index * 10485760) - 1 }}{% endif %}" />
+              <key>{{ amazon_s3_bucket_folder }}/{{ part.path|basename }}</key>
+              <head-url><![CDATA[{{ ("/" ~ amazon_s3_bucket_folder ~ "/" ~ part.path|basename)|get_signed_s3_url(amazon_ebs_s3_host, amazon_s3_bucket, expiry=86000, method="HEAD") }}]]></head-url>
+              <get-url><![CDATA[{{ ("/" ~ amazon_s3_bucket_folder ~ "/" ~ part.path|basename)|get_signed_s3_url(amazon_ebs_s3_host, amazon_s3_bucket, expiry=86000, method="GET") }}]]></get-url>
+              <delete-url><![CDATA[{{ ("/" ~ amazon_s3_bucket_folder ~ "/" ~ part.path|basename)|get_signed_s3_url(amazon_ebs_s3_host, amazon_s3_bucket, expiry=86000, method="DELETE") }}]]></delete-url>
+            </part>
+        {% endfor %}
+        </parts>
+    </import>
+</manifest>

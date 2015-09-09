@@ -1,0 +1,29 @@
+{
+  "provisioners": [
+  ],
+  "post-processors": [
+  ],
+  "builders": [
+    {
+      "ami_description": "Packer generated AMI",
+      "ami_name": "{{ '{{' }} user `name` {{ '}}' }}-{{ '{{' }} timestamp {{ '}}' }}",
+      "instance_type": "{{ amazon_ebs_instance_type }}",
+      "launch_block_device_mappings": [
+        {
+          "delete_on_termination": true,
+          "device_name": "/dev/sda1",
+          "volume_size": {{ ebs_disk_size // 1024 }},
+          "volume_type": "standard"
+        },
+        {
+          "device_name": "/dev/sdb",
+          "virtual_name": "ephemeral0"
+        }
+      ],
+      "region": "{{ amazon_region }}",
+      "source_ami": "{{ ami_image_ids.results[0].ami_id }}",
+      "ssh_username": "{{ sudo_user_after_install }}",
+      "type": "amazon-ebs"
+    }
+  ]
+}

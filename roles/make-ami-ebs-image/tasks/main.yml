@@ -1,0 +1,57 @@
+---
+- name: Grab VMDK image size
+  stat: path="{{ amazon_ebs_ami_name }}.vmdk"
+  register: ebs_image_size
+  connection: local
+- name: Convert final disk image to VMDK
+  shell: "{{ qemuimg_cmd }} convert -f qcow2 -O vmdk -o subformat=streamOptimized {{ final_image }} {{ amazon_ebs_ami_name }}.vmdk"
+  connection: local
+- name: Grab VMDK image size
+  stat: path="{{ amazon_ebs_ami_name }}.vmdk"
+  register: ebs_image_size
+  connection: local
+- name: Split file to 10MB pieces
+  shell: "split -b10m -a 4 {{ amazon_ebs_ami_name }}.vmdk {{ amazon_ebs_ami_name }}-ebs.part."
+  connection: local
+- name: Find all split parts
+  find: paths="." patterns="{{ amazon_ebs_ami_name }}-ebs.part.*" get_checksum="no"
+  register: ebs_image_parts
+  connection: local
+- name: Generate EBS manifest.xml
+  template: src="manifest.xml.j2" dest="./{{ amazon_ebs_ami_name }}-ebs.manifest.xml"
+  connection: local
+- name: Upload EBS image parts parts to Amazon S3
+  s3: bucket="{{ amazon_s3_bucket }}" object="{{ amazon_s3_bucket_folder }}/{{ item.path }}" src="{{ item.path }}" mode="put" region="{{ amazon_region }}" permission="aws-exec-read"
+  with_items: ebs_image_parts.files
+  connection: local
+- name: Upload EBS image manifest to Amazon S3
+  s3: bucket="{{ amazon_s3_bucket }}" object="{{ amazon_s3_bucket_folder }}/{{ amazon_ebs_ami_name }}-ebs.manifest.xml" src="{{ amazon_ebs_ami_name }}-ebs.manifest.xml" mode="put" region="{{ amazon_region }}" permission="aws-exec-read"
+  connection: local
+- name: Import EBS volume
+  ec2_vol: name="{{ amazon_ebs_ami_name }}" volume_size="{{ ebs_disk_size // 1024 }}" image_type="VMDK" image_size="{{ ebs_image_size.stat.size }}" manifest_url="{{ ("/" ~ amazon_s3_bucket_folder ~ "/" ~ amazon_ebs_ami_name ~ "-ebs.manifest.xml")|get_signed_s3_url(amazon_ebs_s3_host, amazon_s3_bucket, expiry=86000, method="GET") }}" zone="{{ amazon_ebs_availability_zone }}" region="{{ amazon_region }}" state="import"
+  connection: local
+  register: ebs_volume
+- name: Create snapshot from EBS volume
+  ec2_snapshot: volume_id="{{ ebs_volume.volume_id }}" wait="yes" wait_timeout="600" region="{{ amazon_region }}"
+  connection: local
+  register: ebs_snapshot
+- name: Register AMI image using the EBS volume
+  ec2_ami: 
+    name: "{{ amazon_ebs_ami_name }}"
+    region: "{{ amazon_region }}"
+    root_device_name: "/dev/sda1"
+    device_mapping:
+        - device_name: /dev/sda1
+          size: "{{ ebs_disk_size // 1024 }}" 
+          volume_type: gp2
+          snapshot_id: "{{ ebs_snapshot.snapshot_id }}"
+  connection: local
+- name: Delete imported EBS volume
+  ec2_vol: id="{{ ebs_volume.volume_id }}" state="absent" region="{{ amazon_region }}"
+  connection: local
+- name: Clean temporary files
+  shell: "rm -f {{ amazon_ebs_ami_name }}.vmdk {{ amazon_ebs_ami_name }}-ebs.part.* {{ amazon_ebs_ami_name }}-ebs.manifest.xml"
+  connection: local
+
+
+

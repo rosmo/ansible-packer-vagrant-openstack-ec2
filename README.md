@@ -1,7 +1,7 @@
-# ansible-packer-vagrant-openstack
+# ansible-packer-vagrant-openstack-ec2
 
 Ansible scripts to build operating system images using Packer and Vagrant, 
-exporting to an Openstack image, AMI or OVF image(s).
+exporting to an Openstack image, Amazon EC2 AMI or OVF image(s).
 
 Now also offers the possibility to upload the image directly to Openstack
 Image service (Glance) and/or automatically instanciate it with a
@@ -28,29 +28,9 @@ The import has only been tested on Virtualbox.
 
 ## Required setup for AMI images
 
-Change "build_ami_image" to true (from command line or playbook vars).
-
-Amazon EC2 command line tools installed: http://docs.aws.amazon.com/AWSEC2/latest/CommandLineReference/set-up-ec2-cli-linux.html
-Amazon EC2 AMI tools installed: https://aws.amazon.com/developertools/368
-
-Environment variables JAVA_HOME, EC2_HOME, EC2_AMITOOL_HOME and PATH properly set, 
-example:
-
-```
-export EC2_HOME=/opt/local/ec2/ec2-api-tools-1.7.5.0/
-export EC2_AMITOOL_HOME=/opt/local/ec2/ec2-ami-tools-1.5.7/
-export PATH=$PATH:$EC2_HOME/bin:$EC2_AMITOOL_HOME/bin
-export JAVA_HOME=$(/usr/libexec/java_home)
-```
-
-Please note that the EC2 AMI tools appear not to support MacOS X, but that can be
-adequately (eg. ec2-bundle-vol won't work) fixed with these two commands.
-
-```
-cd $EC2_AMITOOL_HOME/lib/ec2/platform
-sudo cp -a linux macosx
-sudo cp -a linux.rb macosx.rb
-```
+Change "build_ami_image" to true (from command line or playbook vars), this
+builds an instance-store backed AMI. For EBS-backed images, set "build_ami_ebs_image" 
+to true.
 
 Also you'll need to set your AWS_ACCESS_KEY and AWS_SECRET_KEY:
 
@@ -63,13 +43,7 @@ Then finally you'll need your client number (twelve digits from Amazon) and a X.
 certificate from the IAM console (configure in the playbook build-image.yml vars 
 section, amazon_private_key and amazon_certificate).
 
-~~Finding a proper Amazon Kernel Image (PV-GRUB, hd00) for your region (place in amazon_region 
-and amazon_kernel_image):~~
-```
-ec2-describe-images --region eu-central-1 -a -F image-type=kernel -F manifest-location=*pv-grub* | grep 'pv-grub.*hd00.*x86_64'
-```
-(This image uses HVM virtualization, but paravirtualization might work, just add kernel flavor
-to manifest template)
+This image uses HVM virtualization.
 
 ## You'll also need:
 
@@ -116,6 +90,16 @@ Heat templates programmatically.
 
 ## Change log:
 
+### 9.8.2015
+- Added option to generate EBS backed AMI images. This needs
+  support in Boto, which has not yet been merged in:
+
+  https://github.com/boto/boto/pull/3333 and
+  https://github.com/boto/boto/pull/3332
+
+  The ec2_ami module will check for compatibility.
+
+### 8.8.2015:
 - Removed requirement for Amazon's CLI tools, use s3 to upload image
   parts and improved ec2_ami module to register the image. This
   requires a small fix to Boto's canned ACL strings list at:

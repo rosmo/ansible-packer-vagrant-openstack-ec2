@@ -7,12 +7,14 @@
     - { role: 'cleanup-image', tags: [ 'build' ] }
     - { role: 'finish-image', tags: [ 'build' ] }
     - { role: 'make-ami-image', when: "build_ami_image", tags: [ 'ami' ] }
+    - { role: 'make-ami-ebs-image', when: "build_ami_ebs_image", tags: [ 'ami', 'ebs' ] }
     - { role: 'make-ovf-image', when: "build_ovf_image", tags: [ 'ovf' ] }
     - { role: 'make-glance-image', when: "build_glance_image", tags: [ 'openstack' ] }
     - { role: 'make-heat-template', when: "build_heat_stack", tags: [ 'openstack' ] }
   vars:
     iso_image: "CentOS-7-x86_64-Minimal-1507-01.iso"
     disk_size: 8192
+    ebs_disk_size: 16384
     memory_size: 1024
     ovf_name: "your-ovf"
     ovf_vcpus: 1
@@ -26,17 +28,21 @@
     qemuimg_cmd: "qemu-img"
     final_image: "centos-7-1507-x64.qcow2"
     build_ami_image: no
+    build_ami_ebs_image: no
     build_ovf_image: no
-    build_glance_image: yes
-    build_heat_stack: yes
+    build_glance_image: no
+    build_heat_stack: no
     amazon_region: "eu-central-1"
+    amazon_ebs_availability_zone: "eu-central-1a"
     amazon_kernel_image: "aki-247d4d39"
     amazon_account_id: "123456789012"
     amazon_certificate: "cert-XXX.pem"
     amazon_private_key: "pk-XXX.pem"
     amazon_s3_bucket: "your-s3-bucket-name"
     amazon_s3_bucket_folder: "a-bucket-folder"
+    amazon_ebs_s3_host: "s3.{{ amazon_region }}.amazonaws.com"
     amazon_ami_name: "your-ami-name"
+    amazon_ebs_ami_name: "your-ebs-ami-name"
     openstack_image: "mytestimage"
     openstack_heat_stack: "myteststack"
     openstack_key_name: "rosmo"

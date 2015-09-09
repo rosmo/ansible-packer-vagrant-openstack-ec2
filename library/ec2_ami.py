@@ -44,7 +44,7 @@ options:
     default: 300
   state:
     description:
-      - create (present), register (register), deregister/delete image (absent)
+      - create (present) or deregister/delete image (absent)
     required: false
     default: 'present'
   region:
@@ -70,28 +70,33 @@ options:
     required: false
     default: null
   image_location:
+    version_added: "2.0"
     description:
       - Image location when registering an AMI.
     required: false
     default: null
   architecture:
+    version_added: "2.0"
     description:
       - Architecture when registering an AMI.
     required: false
     default: x86_64
     choices: [ "x86_64", "i386" ]
   virtualization_type:
+    version_added: "2.0"
     description:
       - Virtualization type when registering an AMI.
     required: false
     default: hvm
     choices: [ "paravirtual", "hvm" ]
   kernel_id:
+    version_added: "2.0"
     description:
       - Kernel ID when registering an AMI.
     required: false
     default: null
   root_device_name:
+    version_added: "2.0"
     description:
       - Root device name when registering an AMI.
     required: false
@@ -159,6 +164,15 @@ EXAMPLES = '''
           delete_on_termination: false
           volume_type: gp2
   register: instance
+
+# Register AMI
+- ec2_ami:
+    aws_access_key: xxxxxxxxxxxxxxxxxxxxxxx
+    aws_secret_key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    name: "my_ami_name"
+    image_location: "s3_bucket/bucket_folder/my_ami_name.manifest.xml"
+    region: xxxxxx
+    state: register
 
 # Deregister/Delete AMI
 - ec2_ami:
@@ -327,9 +341,10 @@ def register_image(module, ec2):
     try:
         params = {'name': name,
                   'description': description,
-                  'image_location': image_location,
                   'architecture': architecture,
                   'virtualization_type': virtualization_type}
+        if image_location:
+            params['image_location'] = image_location
         if kernel_id:
             params['kernel_id'] = kernel_id
         if root_device_name:
@@ -344,7 +359,7 @@ def register_image(module, ec2):
                 del device['device_name']
                 bd = BlockDeviceType(**device)
                 bdm[device_name] = bd
-            params['block_device_mapping'] = bdm
+            params['block_device_map'] = bdm
 
         image_id = ec2.register_image(**params)
     except boto.exception.BotoServerError, e:
@@ -410,16 +425,21 @@ def main():
 
         deregister_image(module, ec2)
 
-    elif module.params.get('state') == 'register':
-        register_image(module, ec2)
-
     elif module.params.get('state') == 'present':
         # Changed is always set to true when provisioning new AMI
         if not module.params.get('instance_id'):
-            module.fail_json(msg='instance_id parameter is required for new image')
-        if not module.params.get('name'):
-            module.fail_json(msg='name parameter is required for new image')
-        create_image(module, ec2)
+            if not module.params.get('image_location') and not module.params.get('device_mapping'):
+                module.fail_json(msg='image_location (register from s3) or device_mapping (register from ebs snapshot) parameter is required for new image')
+
+            register_image(module, ec2)
+        else:
+            if module.params.get('image_location'):
+                module.fail_json(msg='instance_id and image_location parameters are mutually exclusive')
+            
+            if not module.params.get('name'):
+                module.fail_json(msg='name parameter is required for new image')
+            
+            create_image(module, ec2)
 
 
 # import module snippets

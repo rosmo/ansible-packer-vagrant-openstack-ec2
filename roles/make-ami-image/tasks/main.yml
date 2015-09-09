@@ -90,7 +90,7 @@
   s3: bucket="{{ amazon_s3_bucket }}" object="{{ amazon_s3_bucket_folder }}/{{ amazon_ami_name }}.manifest.xml" src="{{ amazon_ami_name }}.manifest.xml" mode="put" region="{{ amazon_region }}" permission="public-read,aws-exec-read"
   connection: local
 - name: Register AMI image
-  ec2_ami: name="{{ amazon_ami_name }}" image_location="{{ amazon_s3_bucket }}/{{ amazon_s3_bucket_folder }}/{{ amazon_ami_name }}.manifest.xml" region="{{ amazon_region }}" state="register"
+  ec2_ami: name="{{ amazon_ami_name }}" image_location="{{ amazon_s3_bucket }}/{{ amazon_s3_bucket_folder }}/{{ amazon_ami_name }}.manifest.xml" region="{{ amazon_region }}" state="present"
   connection: local
 - name: Delete temporary files
   shell: "rm -f cert.pem cert-ec2.pem {{ final_image }}.manifest.xml {{ final_image }}.part.* {{ final_image }}.tar {{ final_image }}.raw"
