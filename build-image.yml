@@ -40,7 +40,10 @@
     amazon_private_key: "pk-XXX.pem"
     amazon_s3_bucket: "your-s3-bucket-name"
     amazon_s3_bucket_folder: "a-bucket-folder"
-    amazon_ebs_s3_host: "s3.{{ amazon_region }}.amazonaws.com"
+# Please note that the region endpoints can differ a lot, see the proper
+# endpoint list here: http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
+#    amazon_ebs_s3_host: "s3.{{ amazon_region }}.amazonaws.com"
+    amazon_ebs_s3_host: "s3-{{ amazon_region }}.amazonaws.com"
     amazon_ami_name: "your-ami-name"
     amazon_ebs_ami_name: "your-ebs-ami-name"
     openstack_image: "mytestimage"
