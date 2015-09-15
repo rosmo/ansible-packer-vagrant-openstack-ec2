@@ -7,7 +7,7 @@
         <version>1.0.0</version>
         <release>2015-09-08</release>
     </importer>
-    <self-destruct-url><![CDATA[{{ ("/" ~ amazon_s3_bucket_folder ~ "/" ~ amazon_ami_name ~ "-ebs.manifest.xml")|get_signed_s3_url("s3.eu-central-1.amazonaws.com", "crasman-tf", expiry=86000, method="DELETE") }}]]></self-destruct-url>
+    <self-destruct-url><![CDATA[{{ ("/" ~ amazon_s3_bucket_folder ~ "/" ~ amazon_ami_name ~ "-ebs.manifest.xml")|get_signed_s3_url(amazon_ebs_s3_host, amazon_s3_bucket, expiry=86000, method="DELETE") }}]]></self-destruct-url>
     <import>
         <size>{{ ebs_image_size.stat.size }}</size>
         <volume-size>{{ ebs_disk_size // 1024 }}</volume-size>
