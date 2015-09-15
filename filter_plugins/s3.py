@@ -23,6 +23,7 @@ import os
 
 try:
     from boto.s3.connection import S3Connection
+    import boto
 except ImportError:
     # in this case, we'll make the filters return error messages (see bottom)
     S3Connection = None
@@ -34,6 +35,9 @@ def _need_boto(f_name, *args, **kwargs):
             ' installed on the ansible controller'.format(f_name))
 
 def get_signed_s3_url(value, host=None, bucket=None, aws_access_key=None, aws_secret_key=None, https=True, expiry=631138519, method='GET'):
+    if not boto.config.get('s3', 'use-sigv4'):
+        boto.config.add_section('s3')
+        boto.config.set('s3', 'use-sigv4', 'True')
     if not aws_access_key:
         if 'EC2_ACCESS_KEY' in os.environ:
             aws_access_key = os.environ['EC2_ACCESS_KEY']
@@ -49,9 +53,10 @@ def get_signed_s3_url(value, host=None, bucket=None, aws_access_key=None, aws_se
             aws_secret_key = os.environ['AWS_SECRET_ACCESS_KEY']
         elif 'AWS_SECRET_KEY' in os.environ:
             aws_secret_key = os.environ['AWS_SECRET_KEY']
-            
-    c = S3Connection(aws_access_key, aws_secret_key, host=host)
-    return c.generate_url_sigv4(
+
+    c = boto.connect_s3(aws_access_key, aws_secret_key, host=host)
+    #    c = S3Connection(aws_access_key, aws_secret_key, host=host)
+    return c.generate_url(
         expires_in=long(expiry),
         method=method,
         bucket=bucket,
